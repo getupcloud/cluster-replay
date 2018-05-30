@@ -1,7 +1,7 @@
 # scripts-dump
 
 
-`scripts for dump and restore openshift objetcts`
+`scripts for dump and restore openshift objects`
 
 
 ===========================================================
