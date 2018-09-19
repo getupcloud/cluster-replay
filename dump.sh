@@ -52,7 +52,12 @@ for ns in $all_ns; do
     for type in ${types_to_dump[*]}; do
         type_name=${type#*-}
         echo -n "  --> $type_name "
-        oc export -n $ns ${type_name} > $ns/$type.yaml 2>/dev/null
+        case "${type_name}" in
+            imagestreams)
+                oc -n $ns get --export ${type_name} -o yaml;;
+            *)
+                oc -n $ns export ${type_name}
+        esac > $ns/$type.yaml 2>/dev/null
         echo "[$(grep -e '^-' $ns/$type.yaml |wc -l)]"
     done
 done
