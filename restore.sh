@@ -1,26 +1,28 @@
 #!/bin/bash
 
-echo Restoring applications...
 cd cluster-dump
-for ns in */; do
-    pushd $ns
-
-    echo Recreating project ${ns%/}...
-    echo "--> ${ns%/}"
-    oc new-project ${ns%/}
-
-    echo Recreating resources for ${ns%/}...
-    for type in *.yaml; do
-        oc create -n ${ns%/} -f ${type}
-    done
-    popd
-done
 
 echo Restoring users...
 oc replace -f cluster-users.yaml || oc create -f cluster-users.yaml
 echo Restoring identities...
 oc get user -o yaml | python ../restore-identity.py cluster-identity.yaml > cluster-identity-restored.yaml
 oc replace -f cluster-identity-restored.yaml || oc create -f cluster-identity-restored.yaml
+
+echo Restoring applications...
+for ns in */; do
+    ns=${ns%/*}
+    pushd $ns
+
+    echo Recreating project ${ns}...
+    echo "--> ${ns}"
+    oc new-project ${ns}
+
+    echo Recreating resources for ${ns}...
+    for type in *.yaml; do
+        oc create -n ${ns} -f ${type}
+    done
+    popd
+done
 
 if oc get ns getup &>/dev/null; then
     echo Restoring GetupCloud databases...
