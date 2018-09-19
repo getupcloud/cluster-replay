@@ -1,15 +1,37 @@
 #!/bin/bash
 
-itens=("dc" "svc" "bc" "routes" "ds" "rolebinding" "secrets" "imagestream" "sa" "configmap")
-touch restore.txt
-rm *.yaml
-object=$(ls) && echo -e "${object}" >> restore.txt
+echo Restoring applications...
+cd cluster-dump
+for ns in */; do
+    pushd $ns
 
-for i in "${itens[@]}"
-do
-  while read line; do  
-    curl -Lv -H "Authorization: Bearer ${token} "https://${url}/api/v1/project/ --data "{\"name\":\""${line}"\",\"family\":\"default\"}" -H content-type:application/json
-    oc create -f "${line}"
-    oc process  ${i}-"${line}" | oc create -f - -n"${line}" 
-  done < restore.txt
+    echo Recreating project ${ns%/}...
+    echo "--> ${ns%/}"
+    oc new-project ${ns%/}
+
+    echo Recreating resources for ${ns%/}...
+    for type in *.yaml; do
+        oc create -n ${ns%/} -f ${type}
+    done
+    popd
 done
+
+echo Restoring users...
+oc replace -f cluster-users.yaml || oc create -f cluster-users.yaml
+echo Restoring identities...
+oc get user -o yaml | python ../restore-identity.py cluster-identity.yaml > cluster-identity-restored.yaml
+oc replace -f cluster-identity-restored.yaml || oc create -f cluster-identity-restored.yaml
+
+if oc get ns getup &>/dev/null; then
+    echo Restoring GetupCloud databases...
+    for db in mysql-api_getup mysql-usage_getup; do
+        dc=${db%_*}
+        name=${db#*_}
+        pod=$(oc get pod -n getup -l app=$dc -o name|cut -f2 -d/|head -1)
+        echo "--> pod=$pod app=$dc db=$name > $db.sql"
+        oc -n getup cp $db.sql $pod:/tmp/dump.sql
+        oc -n getup rsh $pod scl enable rh-mysql57 "mysqladmin -uroot drop $name --force"
+        oc -n getup rsh $pod scl enable rh-mysql57 "mysqladmin -uroot create $name"
+        oc -n getup rsh $pod scl enable rh-mysql57 "mysql -uroot $name </tmp/dump.sql"
+    done
+fi
