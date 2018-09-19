@@ -17,8 +17,8 @@ DEFAULT_EXCLUDE_NS=(
 
 exclude_ns="${EXCLUDE_NAMESPACES:-${DEFAULT_EXCLUDE_NS[*]}}"
 
-clusterroles=${INCLUDE_CLUSTERROLES}
-clusterrolebindings=${INCLUDE_CLUSTERROLEBINDINGS}
+clusterroles="${INCLUDE_CLUSTERROLES}"
+clusterrolebindings="${INCLUDE_CLUSTERROLEBINDINGS}"
 
 types_to_dump=(
     1-secrets
