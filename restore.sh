@@ -8,6 +8,11 @@ echo Restoring identities...
 oc get user -o yaml | python ../restore-identity.py cluster-identity.yaml > cluster-identity-restored.yaml
 oc replace -f cluster-identity-restored.yaml || oc create -f cluster-identity-restored.yaml
 
+for type in clusterroles clusterrolebindings; do
+    echo Restoring $type...
+    oc replace -f cluster-$type.yaml || oc create -f cluster-$type.yaml
+done
+
 echo Restoring applications...
 for ns in */; do
     ns=${ns%/*}

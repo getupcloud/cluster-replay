@@ -1,7 +1,25 @@
 #!/bin/bash
 
-all_ns=$(oc get ns -o name --no-headers | cut -f2 -d/)
-exclude_ns="${EXCLUDE_NS:-default kube-public kube-system logging management-infra openshift openshift-grafana openshift-infra openshift-metrics openshift-node openshift-web-console getup}"
+DEFAULT_EXCLUDE_NS=(
+    default
+    kube-public
+    kube-system
+    logging
+    management-infra
+    openshift
+    openshift-grafana
+    openshift-infra
+    openshift-metrics
+    openshift-node
+    openshift-web-console
+    getup
+)
+
+exclude_ns="${EXCLUDE_NAMESPACES:-${DEFAULT_EXCLUDE_NS[*]}}"
+
+clusterroles=${INCLUDE_CLUSTERROLES}
+clusterrolebindings=${INCLUDE_CLUSTERROLEBINDINGS}
+
 types_to_dump=(
     1-secrets
     2-serviceaccounts
@@ -17,6 +35,8 @@ types_to_dump=(
     9-ingress
     9-routes
 )
+
+all_ns=$(oc get ns -o name --no-headers | cut -f2 -d/)
 
 rm -rf cluster-dump
 mkdir cluster-dump
@@ -42,6 +62,24 @@ for type in users identity; do
     echo "--> $type"
     oc export $type > cluster-$type.yaml
 done
+
+if [ -n "$clusterroles" ]; then
+    all_cr=""
+    for name in ${clusterroles}; do
+        all_cr+="clusterroles/$name "
+    done
+    echo Dumping $all_cr
+    oc export $all_cr > cluster-clusterroles.yaml
+fi
+
+if [ -n "$clusterrolebindings" ]; then
+    all_crb=""
+    for name in ${clusterrolebindings}; do
+        all_crb+="clusterrolebindings/$name "
+    done
+    echo Dumping $all_crb
+    oc export $all_crb > cluster-clusterrolebindings.yaml
+fi
 
 if oc get ns getup &>/dev/null; then
     echo Dumping getup databases
