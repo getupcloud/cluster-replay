@@ -12,7 +12,6 @@ $ KUBECONFIG=cluster-2-kubeconfig ./restore.sh
 It's mainly used to migrate GetupCloud's Openshift clusters from clients.
 
 ## Supported environment variables
--------------------------------
 
 ### EXCLUDE_NAMESPACES
 
